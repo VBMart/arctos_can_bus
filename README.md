@@ -1,21 +1,40 @@
 # arctos_can_bus
 
 ## Description
-Main file contains some test functions. 
-Only X, Y, Z are implemented at the moment. 
-`python3 main.py read_encoders` reads the encoder values from the CAN bus (Safest way to check connections with motor).
-`python3 main.py test_x_run` sends movement commands to the robot in the X direction.
-`python3 main.py go_home` sends the robot to the home position.
+`arctos_can_bus` is a Python-based project for interfacing with a robot via the CAN bus. The main file includes test functions for movement and encoder reading.
 
-## Prepare the environment
-1. Create a virtual environment:
-`python3 -m venv ~/myenv/arc`
+### Implemented Features
+- **X, Y, Z Movement**: Currently, only movement in X, Y, and Z directions is implemented.
+- **Encoder Reading**: Safely checks motor connections by reading encoder values.
+- **Movement Testing**: Sends movement commands to the robot in the X direction.
+- **Homing Functionality**: Moves the robot to its home position.
 
-2. Activate the virtual environment:
-`source ~/myenv/arc/bin/activate`
+### Available Commands
+```sh
+python3 main.py read_encoders   # Reads encoder values from the CAN bus
+python3 main.py test_x_run      # Moves the robot in the X direction
+python3 main.py go_home         # Moves the robot to its home position
+```
 
-3. Install required packages (go to the directory where the requirements.txt file is located):
-`pip install -r requirements.txt`
+## Environment Setup
+### 1. Create a Virtual Environment
+```sh
+python3 -m venv ~/myenv/arc
+```
 
-4. To exit the virtual environment, use:
-`deactivate`
+### 2. Activate the Virtual Environment
+```sh
+source ~/myenv/arc/bin/activate
+```
+
+### 3. Install Dependencies
+Navigate to the directory containing `requirements.txt` and install required packages:
+```sh
+pip install -r requirements.txt
+```
+
+### 4. Deactivate Virtual Environment
+To exit the virtual environment, run:
+```sh
+deactivate
+```
