@@ -12,8 +12,11 @@ def can_send_message(bus: can.interface.Bus, message: can.Message, timeout = 0.5
     bus.send(message)
     data_bytes = ", ".join([f"0x{byte:02X}" for byte in message.data])
     print(
-        f"Sent: arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
+        f"Message sent: arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
     )
+
+    if timeout == 0:
+        return received_responses
 
     start_time = time.time()
     while True:

@@ -16,11 +16,6 @@ def make_relative_turn(speed: int, acc: int, degrees: float):
     data.extend(list(speed.to_bytes(2, byteorder='big', signed=False)))
     data.extend(list(acc.to_bytes(1, byteorder='big', signed=False)))
     data.extend(list(degrees_value.to_bytes(3, byteorder='big', signed=True)))
-    print(data)
-    data_bytes = ", ".join(
-        [f"0x{byte:02X}" for byte in data]
-    )
-    print(data_bytes)
     return data
 
 
@@ -73,14 +68,14 @@ class BaseMotor:
         can_send_message(self.bus, msg_motor_enable, timeout=1)
 
     def go_zero(self, timeout=30):
-        self.position = 0
+        self.position = -1 * self.zero_point
         if self.zero_point != 0:
             self.make_turn(self.zero_point, speed=1000, acc=200, timeout=timeout)
 
     def go_home(self, timeout=30):
         msg_go_home = make_message(self.id, [CMD_GO_HOME])
         can_send_message(self.bus, msg_go_home, timeout=timeout)
-        self.go_zero()
+        self.go_zero(timeout=timeout)
 
     def make_turn(self, degrees: float, speed: int=1000, acc: int=200, timeout: int = 10):
         assert self.position is not None, 'Position is not set. First call go_home'

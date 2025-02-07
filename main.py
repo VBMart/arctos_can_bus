@@ -2,6 +2,7 @@ import argparse
 from time import sleep
 
 import can
+from can import ThreadSafeBus
 
 from arctos import Arctos
 from motors import XMotor, YMotor, ZMotor
@@ -9,6 +10,11 @@ from motors import XMotor, YMotor, ZMotor
 
 def run_fn(fn):
     bus = can.interface.Bus(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+    fn(bus)
+    bus.shutdown()
+
+def run_threaded_fn(fn):
+    bus = ThreadSafeBus(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
     fn(bus)
     bus.shutdown()
 
@@ -32,10 +38,17 @@ def go_home(bus: can.interface.Bus):
     arctos.c_motor().set_active(False)
     arctos.go_home()
     print("Home sent")
+    print('-')
 
-    # arctos.z_motor().go_zero(timeout=0)
-    # arctos.y_motor().go_zero(timeout=0)
-    # arctos.x_motor().go_zero(timeout=0)
+    for i in range(15):
+        print(f"Waiting for home {i} / 14")
+        sleep(1)
+
+    print('-')
+    print("Going zero")
+    arctos.z_motor().go_zero(timeout=0)
+    arctos.y_motor().go_zero(timeout=0)
+    arctos.x_motor().go_zero(timeout=0)
 
 
 def say_hello(bus: can.interface.Bus):
@@ -69,10 +82,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "read_encoders":
-        run_fn(read_encoders)
+        run_threaded_fn(read_encoders)
     elif args.command == "test_x_run":
-        run_fn(test_x_run)
+        run_threaded_fn(test_x_run)
     elif args.command == "go_home":
-        run_fn(go_home)
+        run_threaded_fn(go_home)
     elif args.command == "say_hello":
-        run_fn(say_hello)
+        run_threaded_fn(say_hello)
