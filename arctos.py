@@ -30,6 +30,9 @@ class Arctos:
         self._listener_thread = None
         self.start_can_listener()
 
+    def __str__(self):
+        return f"Arctos \n\t Motors: \n\t\t {'\n\t\t '.join([str(motor) for motor in self._motors.values()])}"
+
     def start_can_listener(self):
         import threading
         self._listener_active = True  # Ensure flag is set
@@ -71,19 +74,36 @@ class Arctos:
         received_data_bytes = ", ".join(
             [f"0x{byte:02X}" for byte in message.data]
         )
+        sender_id = message.arbitration_id
         print(
-            f"\tReceived: arbitration_id=0x{message.arbitration_id:X}, data=[{received_data_bytes}], is_extended_id=False"
+            f"\tReceived: arbitration_id=0x{sender_id:X}, data=[{received_data_bytes}], is_extended_id=False"
         )
+        motor = self.get_motor_by_id(sender_id)
+        if motor:
+            motor.on_can_message(message)
 
-    def get_motor(self, motor_id: str):
+
+    def get_motor_by_axis(self, axis_name: str):
         """
         Get the motor instance by its identifier.
 
-        :param motor_id: The identifier of the motor ('x', 'y', 'z', 'a', 'b', 'c').
+        :param axis_name: The identifier of the motor ('x', 'y', 'z', 'a', 'b', 'c').
         :return: The motor instance if found, otherwise None.
         """
-        assert motor_id in self._motor_classes, f"Motor with id '{motor_id}' not found."
-        return self._motors.get(motor_id)
+        assert axis_name in self._motor_classes, f"Motor with id '{axis_name}' not found."
+        return self._motors.get(axis_name)
+
+    def get_motor_by_id(self, motor_id: int):
+        """
+        Get the motor instance by its CAN id.
+
+        :param motor_id: The CAN id of the motor.
+        :return: The motor instance if found, otherwise None.
+        """
+        for motor in self._motors.values():
+            if motor.id == motor_id:
+                return motor
+        return None
 
     def get_active_motors(self):
         """
@@ -102,24 +122,24 @@ class Arctos:
 
     def x_motor(self):
         """Get the X motor instance."""
-        return self.get_motor('x')
+        return self.get_motor_by_axis('x')
 
     def y_motor(self):
         """Get the Y motor instance."""
-        return self.get_motor('y')
+        return self.get_motor_by_axis('y')
 
     def z_motor(self):
         """Get the Z motor instance."""
-        return self.get_motor('z')
+        return self.get_motor_by_axis('z')
 
     def a_motor(self):
         """Get the A motor instance."""
-        return self.get_motor('a')
+        return self.get_motor_by_axis('a')
 
     def b_motor(self):
         """Get the B motor instance."""
-        return self.get_motor('b')
+        return self.get_motor_by_axis('b')
 
     def c_motor(self):
         """Get the C motor instance."""
-        return self.get_motor('c')
+        return self.get_motor_by_axis('c')

@@ -1,7 +1,8 @@
+from enum import Enum
 from typing import Optional
 
 import can
-from can_helper import make_message, can_send_message, calc_checksum, can_send_message_and_wait_response
+from can_helper import make_message, can_send_message, calc_checksum, can_send_message_and_wait_response, print_message
 from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ZERO, CMD_SET_ENABLE, CMD_REMAP, CMD_MOTOR_STATUS, \
     CMD_RELATIVE_TURN
 
@@ -17,6 +18,14 @@ def make_relative_turn(speed: int, acc: int, degrees: float):
     data.extend(list(acc.to_bytes(1, byteorder='big', signed=False)))
     data.extend(list(degrees_value.to_bytes(3, byteorder='big', signed=True)))
     return data
+
+
+class MotorStatus(str, Enum):
+    OK = 'OK'
+    ERROR = 'ERROR'
+    HOMING = 'HOMING'
+    MOVING = 'MOVING'
+    UNKNOWN = 'UNKNOWN'
 
 
 class BaseMotor:
@@ -37,6 +46,10 @@ class BaseMotor:
         self.position = None
         self.is_active = True
         self.can_wait_for_response = True
+        self.status = MotorStatus.UNKNOWN
+
+    def __str__(self):
+        return f"Motor {self.id} (active={self.is_active}) with position {self.position} and status {self.status}"
 
     def set_active(self, active: bool):
         self.is_active = active
@@ -50,6 +63,39 @@ class BaseMotor:
             can_send_message_and_wait_response(self.bus, message, timeout=timeout)
         else:
             can_send_message(self.bus, message)
+
+    def on_can_message(self, message: can.Message):
+        print(f"Motor {self.id} received message: {message}")
+        command = message.data[0]
+
+        print_message(message)
+
+        if command == CMD_GO_HOME:
+            status = message.data[1]
+            if status == 0x01:
+                # Motor started homing
+                self.status = MotorStatus.HOMING
+            elif status == 0x02:
+                # Motor finished homing
+                self.status = MotorStatus.OK
+                self.go_zero()
+            elif status == 0x00:
+                # Motor failed homing
+                self.status = MotorStatus.ERROR
+        elif command == CMD_RELATIVE_TURN:
+            status = message.data[1]
+            if status == 0x01:
+                # Motor started moving
+                self.status = MotorStatus.MOVING
+            elif status == 0x02:
+                # Motor finished moving
+                self.status = MotorStatus.OK
+            elif status == 0x03:
+                # Motor found limit
+                self.status = MotorStatus.OK
+            elif status == 0x00:
+                # Motor failed moving
+                self.status = MotorStatus.ERROR
 
     def read_encoder(self):
         msg_read_encoder = make_message(self.id, [CMD_READ_ENCODER])
@@ -82,7 +128,6 @@ class BaseMotor:
     def go_home(self, timeout=30):
         msg_go_home = make_message(self.id, [CMD_GO_HOME])
         self.send_message(msg_go_home, timeout=timeout)
-        self.go_zero(timeout=timeout)
 
     def make_turn(self, degrees: float, speed: int=1000, acc: int=200, timeout: int = 10):
         assert self.position is not None, 'Position is not set. First call go_home'

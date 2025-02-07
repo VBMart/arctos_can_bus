@@ -98,6 +98,48 @@ def can_send_message_and_wait_response(bus: can.interface.Bus, message: can.Mess
     print('')
     return received_responses
 
+def print_message(message: can.Message) -> None:
+    command = message.data[0]
+    if command == CMD_READ_ENCODER:
+        carry_bytes = message.data[1:5]
+        carry = int.from_bytes(carry_bytes, byteorder='big', signed=True)
+        rot = carry
+        value_bytes = message.data[5:7]
+        value = int.from_bytes(value_bytes, byteorder='big', signed=False)
+        max_value = 0x3FFF
+        degrees = 360 * (value / max_value)
+        print(f'Got encoder value: carry={carry}, value={value} -> degrees: {degrees}, rotation: {rot}')
+    if command == CMD_GO_HOME:
+        status = message.data[1]
+        if status == 0x01:
+            print('Home started')
+        elif status == 0x02:
+            print('Home found')
+        elif status == 0x00:
+            print('Home failed')
+    if command == CMD_SET_ENABLE:
+        status = message.data[1]
+        if status == 0x01:
+            print('Enable success')
+        elif status == 0x00:
+            print('Enable failed')
+    if command == CMD_REMAP:
+        status = message.data[1]
+        if status == 0x01:
+            print('Remap success')
+        elif status == 0x00:
+            print('Remap failed')
+    if command == CMD_RELATIVE_TURN:
+        status = message.data[1]
+        if status == 0x01:
+            print('Motor started')
+        elif status == 0x02:
+            print('Motor stopped')
+        elif status == 0x00:
+            print('Motor failed')
+        elif status == 0x03:
+            print('Motor found endstop')
+
 def calc_checksum(id, data) -> int:
     sm = id
     for n in data:

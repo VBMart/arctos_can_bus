@@ -38,17 +38,11 @@ def go_home(bus: can.interface.Bus):
     arctos.c_motor().set_active(False)
     arctos.go_home()
     print("Home sent")
-    print('-')
 
-    for i in range(15):
-        print(f"Waiting for home {i} / 14")
-        sleep(1)
-
-    print('-')
-    print("Going zero")
-    arctos.z_motor().go_zero(timeout=0)
-    arctos.y_motor().go_zero(timeout=0)
-    arctos.x_motor().go_zero(timeout=0)
+    for i in range(60):
+        print(f"Waiting {i} / 60")
+        print(arctos)
+        sleep(0.5)
 
 
 def say_hello(bus: can.interface.Bus):
