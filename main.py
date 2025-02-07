@@ -81,11 +81,14 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=["read_encoders", "go_home", "test_x_run", "say_hello"], help="Command to execute")
     args = parser.parse_args()
 
-    if args.command == "read_encoders":
+    command = args.command
+    # command = 'go_home'
+
+    if command == "read_encoders":
         run_threaded_fn(read_encoders)
-    elif args.command == "test_x_run":
+    elif command == "test_x_run":
         run_threaded_fn(test_x_run)
-    elif args.command == "go_home":
+    elif command == "go_home":
         run_threaded_fn(go_home)
-    elif args.command == "say_hello":
+    elif command == "say_hello":
         run_threaded_fn(say_hello)

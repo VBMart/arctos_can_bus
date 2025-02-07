@@ -5,7 +5,15 @@ from typing import List
 from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ENABLE, CMD_REMAP, CMD_RELATIVE_TURN
 
 
-def can_send_message(bus: can.interface.Bus, message: can.Message, timeout = 0.5) -> List:
+def can_send_message(bus: can.interface.Bus, message: can.Message) -> None:
+    bus.send(message)
+    data_bytes = ", ".join([f"0x{byte:02X}" for byte in message.data])
+    print(
+        f"Message sent: arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
+    )
+
+
+def can_send_message_and_wait_response(bus: can.interface.Bus, message: can.Message, timeout = 0.5) -> List:
     received_responses = []
 
     command = message.data[0]

@@ -24,6 +24,8 @@ class Arctos:
             'c': CMotor
         }
         self._motors = {key: cls(bus) for key, cls in self._motor_classes.items()}
+        for motor in self._motors.values():
+            motor.can_wait_for_response = False
         self._listener_active = False
         self._listener_thread = None
         self.start_can_listener()
