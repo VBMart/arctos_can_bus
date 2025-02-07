@@ -1,7 +1,9 @@
 import argparse
+from time import sleep
 
 import can
 
+from arctos import Arctos
 from motors import XMotor, YMotor, ZMotor
 
 
@@ -24,14 +26,34 @@ def read_encoders(bus: can.interface.Bus):
 
 def go_home(bus: can.interface.Bus):
     print("Going home")
+    arctos = Arctos(bus)
+    arctos.a_motor().set_active(False)
+    arctos.b_motor().set_active(False)
+    arctos.c_motor().set_active(False)
+    arctos.go_home()
+    print("Home sent")
+
+    # arctos.z_motor().go_zero(timeout=0)
+    # arctos.y_motor().go_zero(timeout=0)
+    # arctos.x_motor().go_zero(timeout=0)
+
+
+def say_hello(bus: can.interface.Bus):
     x_motor = XMotor(bus)
     y_motor = YMotor(bus)
     z_motor = ZMotor(bus)
 
-    z_motor.go_home(timeout=5)
-    y_motor.go_home(timeout=5)
-    x_motor.go_home(timeout=5)
-    print("Homed")
+    go_home(bus)
+
+    x_motor.make_turn(90)
+    y_motor.make_turn(90)
+    x_motor.make_turn(45)
+    x_motor.make_turn(-90)
+    x_motor.make_turn(45)
+    y_motor.make_turn(-90)
+    x_motor.make_turn(-90)
+    y_motor.make_turn(40)
+    y_motor.make_turn(-40)
 
 
 def test_x_run(bus: can.interface.Bus):
@@ -43,7 +65,7 @@ def test_x_run(bus: can.interface.Bus):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Control motors via CAN bus")
-    parser.add_argument("command", choices=["read_encoders", "go_home", "test_x_run"], help="Command to execute")
+    parser.add_argument("command", choices=["read_encoders", "go_home", "test_x_run", "say_hello"], help="Command to execute")
     args = parser.parse_args()
 
     if args.command == "read_encoders":
@@ -52,3 +74,5 @@ if __name__ == "__main__":
         run_fn(test_x_run)
     elif args.command == "go_home":
         run_fn(go_home)
+    elif args.command == "say_hello":
+        run_fn(say_hello)

@@ -40,6 +40,10 @@ class BaseMotor:
         self.left_limit = left_limit
         self.right_limit = right_limit
         self.position = None
+        self.is_active = True
+
+    def set_active(self, active: bool):
+        self.is_active = active
 
     def make_message(self, data) -> can.Message:
         data.append(calc_checksum(id, data))
@@ -68,12 +72,15 @@ class BaseMotor:
         msg_motor_enable = make_message(self.id, [CMD_SET_ENABLE, enable])
         can_send_message(self.bus, msg_motor_enable, timeout=1)
 
-    def go_home(self, timeout=30):
-        msg_go_home = make_message(self.id, [CMD_GO_HOME])
-        can_send_message(self.bus, msg_go_home, timeout=timeout)
+    def go_zero(self, timeout=30):
         self.position = 0
         if self.zero_point != 0:
             self.make_turn(self.zero_point, speed=1000, acc=200, timeout=timeout)
+
+    def go_home(self, timeout=30):
+        msg_go_home = make_message(self.id, [CMD_GO_HOME])
+        can_send_message(self.bus, msg_go_home, timeout=timeout)
+        self.go_zero()
 
     def make_turn(self, degrees: float, speed: int=1000, acc: int=200, timeout: int = 10):
         assert self.position is not None, 'Position is not set. First call go_home'
