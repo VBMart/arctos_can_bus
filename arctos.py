@@ -15,6 +15,8 @@ class Arctos:
         :param bus: CAN bus interface for motor communication.
         """
         self._bus = bus
+
+        # Initialize motor instances
         self._motor_classes = {
             'x': XMotor,
             'y': YMotor,
@@ -26,6 +28,8 @@ class Arctos:
         self._motors = {key: cls(bus) for key, cls in self._motor_classes.items()}
         for motor in self._motors.values():
             motor.can_wait_for_response = False
+
+        # Start the CAN listener
         self._listener_active = False
         self._listener_thread = None
         self.start_can_listener()
@@ -118,7 +122,7 @@ class Arctos:
         Send the go home command to all motors.
         """
         for motor in self.get_active_motors():
-            motor.go_home(timeout=0)
+            motor.go_home()
 
     def x_motor(self):
         """Get the X motor instance."""
