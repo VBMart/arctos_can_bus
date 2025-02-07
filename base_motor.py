@@ -1,8 +1,9 @@
 from enum import Enum
 from typing import Optional
-
 import can
-from can_helper import make_message, can_send_message, calc_checksum, can_send_message_and_wait_response, print_message
+
+from can_device import CanDevice
+from can_helper import print_motor_message
 from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ZERO, CMD_SET_ENABLE, CMD_REMAP, CMD_MOTOR_STATUS, \
     CMD_RELATIVE_TURN
 
@@ -28,47 +29,38 @@ class MotorStatus(str, Enum):
     UNKNOWN = 'UNKNOWN'
 
 
-class BaseMotor:
+class BaseMotor(CanDevice):
     def __init__(self,
                  bus: can.interface.Bus,
-                 id: int,
+                 can_id: int,
                  ratio: float,
                  zero_point: float = 0.0,
                  left_limit: Optional[float] = None,
                  right_limit: Optional[float] = None
                  ):
-        self.bus = bus
-        self.id = id
+        super().__init__(bus, can_id)
         self.ratio = ratio
         self.zero_point = zero_point
         self.left_limit = left_limit
         self.right_limit = right_limit
         self.position = None
-        self.is_active = True
-        self.can_wait_for_response = True
         self.status = MotorStatus.UNKNOWN
+        self.pending_degrees = None
 
     def __str__(self):
-        return f"Motor {self.id} (active={self.is_active}) with position {self.position} and status {self.status}"
+        return f"Motor {self.can_id} (active={self.is_active}) with position {self.position} and status {self.status}"
 
     def set_active(self, active: bool):
         self.is_active = active
 
-    def make_message(self, data) -> can.Message:
-        data.append(calc_checksum(id, data))
-        return can.Message(arbitration_id=self.id, data=data, is_extended_id=False)
-
-    def send_message(self, message: can.Message, timeout=0.5):
-        if self.can_wait_for_response:
-            can_send_message_and_wait_response(self.bus, message, timeout=timeout)
-        else:
-            can_send_message(self.bus, message)
+    def is_ready(self):
+        return self.status == MotorStatus.OK
 
     def on_can_message(self, message: can.Message):
-        print(f"Motor {self.id} received message: {message}")
+        print(f"Motor {self.can_id} received message: {message}")
         command = message.data[0]
 
-        print_message(message)
+        print_motor_message(message)
 
         if command == CMD_GO_HOME:
             status = message.data[1]
@@ -78,6 +70,7 @@ class BaseMotor:
             elif status == 0x02:
                 # Motor finished homing
                 self.status = MotorStatus.OK
+                self.position = -1 * self.zero_point
                 self.go_zero()
             elif status == 0x00:
                 # Motor failed homing
@@ -89,44 +82,52 @@ class BaseMotor:
                 self.status = MotorStatus.MOVING
             elif status == 0x02:
                 # Motor finished moving
+                self.position += self.pending_degrees
+                self.pending_degrees = None
                 self.status = MotorStatus.OK
             elif status == 0x03:
                 # Motor found limit
+                if self.pending_degrees > 0:
+                    self.position = self.right_limit
+                else:
+                    self.position = self.left_limit
+                self.pending_degrees = None
                 self.status = MotorStatus.OK
             elif status == 0x00:
                 # Motor failed moving
                 self.status = MotorStatus.ERROR
 
     def read_encoder(self):
-        msg_read_encoder = make_message(self.id, [CMD_READ_ENCODER])
+        msg_read_encoder = self.make_message([CMD_READ_ENCODER])
         self.send_message(msg_read_encoder)
 
     def motor_status(self):
-        msg_motor_status = make_message(self.id, [CMD_MOTOR_STATUS])
+        msg_motor_status = self.make_message([CMD_MOTOR_STATUS])
         self.send_message(msg_motor_status)
 
     def remap(self, enable: bool):
         enable = 1 if enable else 0
-        msg_read_encoder = make_message(self.id, [CMD_REMAP, enable])
+        msg_read_encoder = self.make_message([CMD_REMAP, enable])
         self.send_message(msg_read_encoder)
 
     def set_zero(self):
-        msg_motor_set_zero = make_message(self.id, [CMD_SET_ZERO])
+        msg_motor_set_zero = self.make_message([CMD_SET_ZERO])
         self.send_message(msg_motor_set_zero)
         self.position = 0
 
     def set_enable(self, enable: bool):
         enable = 1 if enable else 0
-        msg_motor_enable = make_message(self.id, [CMD_SET_ENABLE, enable])
+        msg_motor_enable = self.make_message([CMD_SET_ENABLE, enable])
         self.send_message(msg_motor_enable)
 
     def go_zero(self, timeout=30):
-        self.position = -1 * self.zero_point
         if self.zero_point != 0:
             self.make_turn(self.zero_point, speed=1000, acc=200, timeout=timeout)
 
     def go_home(self, timeout=30):
-        msg_go_home = make_message(self.id, [CMD_GO_HOME])
+        self.status = MotorStatus.UNKNOWN
+        self.position = None
+        msg_go_home = self.make_message([CMD_GO_HOME])
         self.send_message(msg_go_home, timeout=timeout)
 
     def make_turn(self, degrees: float, speed: int=1000, acc: int=200, timeout: int = 10):
@@ -137,6 +138,6 @@ class BaseMotor:
         if acc > 1000:
             acc = 1000
         turn = make_relative_turn(speed=speed, acc=acc, degrees=degrees*self.ratio)
-        turn_msg = make_message(self.id, turn)
+        turn_msg = self.make_message(turn)
         self.send_message(turn_msg, timeout=timeout)
-        self.position += degrees
+        self.pending_degrees = degrees

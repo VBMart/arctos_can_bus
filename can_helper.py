@@ -98,7 +98,7 @@ def can_send_message_and_wait_response(bus: can.interface.Bus, message: can.Mess
     print('')
     return received_responses
 
-def print_message(message: can.Message) -> None:
+def print_motor_message(message: can.Message) -> None:
     command = message.data[0]
     if command == CMD_READ_ENCODER:
         carry_bytes = message.data[1:5]
@@ -140,12 +140,12 @@ def print_message(message: can.Message) -> None:
         elif status == 0x03:
             print('Motor found endstop')
 
-def calc_checksum(id, data) -> int:
-    sm = id
+def calc_checksum(can_id, data) -> int:
+    sm = can_id
     for n in data:
         sm += n
     return (sm) & 0xFF
 
-def make_message(id, data) -> can.Message:
-    data.append(calc_checksum(id, data))
-    return can.Message(arbitration_id=id, data=data, is_extended_id=False)
+def make_message(can_id, data) -> can.Message:
+    data.append(calc_checksum(can_id, data))
+    return can.Message(arbitration_id=can_id, data=data, is_extended_id=False)

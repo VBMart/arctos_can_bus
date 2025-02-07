@@ -105,7 +105,7 @@ class Arctos:
         :return: The motor instance if found, otherwise None.
         """
         for motor in self._motors.values():
-            if motor.id == motor_id:
+            if motor.can_id == motor_id:
                 return motor
         return None
 

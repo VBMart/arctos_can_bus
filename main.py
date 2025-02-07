@@ -1,8 +1,6 @@
 import argparse
-from time import sleep
-
 import can
-from can import ThreadSafeBus
+from time import sleep
 
 from arctos import Arctos
 from motors import XMotor, YMotor, ZMotor
@@ -14,7 +12,7 @@ def run_fn(fn):
     bus.shutdown()
 
 def run_threaded_fn(fn):
-    bus = ThreadSafeBus(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+    bus = can.ThreadSafeBus(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
     fn(bus)
     bus.shutdown()
 
@@ -42,6 +40,13 @@ def go_home(bus: can.interface.Bus):
     for i in range(60):
         print(f"Waiting {i} / 60")
         print(arctos)
+        is_ready = True
+        for active_motor in arctos.get_active_motors():
+            is_ready = is_ready and active_motor.is_ready()
+            is_ready = is_ready and active_motor.position == 0
+        if is_ready:
+            print("All motors are ready")
+            break
         sleep(0.5)
 
 
@@ -76,7 +81,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     command = args.command
-    # command = 'go_home'
+    command = 'go_home'
 
     if command == "read_encoders":
         run_threaded_fn(read_encoders)
