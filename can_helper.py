@@ -2,7 +2,7 @@ import can
 import time
 from typing import List
 
-from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ENABLE, CMD_REMAP, CMD_RELATIVE_TURN
+from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ENABLE, CMD_REMAP, CMD_RELATIVE_TURN, CMD_GET_CURRENT_SPEED
 
 
 def can_send_message(bus: can.interface.Bus, message: can.Message) -> None:
@@ -139,6 +139,11 @@ def print_motor_message(message: can.Message) -> None:
             print('Motor failed')
         elif status == 0x03:
             print('Motor found endstop')
+    if command == CMD_GET_CURRENT_SPEED:
+        speed_bytes = message.data[1:2]
+        current_speed = int.from_bytes(speed_bytes, byteorder='big', signed=True)
+        print(f'Got current speed: {current_speed}')
+
 
 def calc_checksum(can_id, data) -> int:
     sm = can_id

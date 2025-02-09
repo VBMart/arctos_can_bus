@@ -5,7 +5,7 @@ import can
 from can_device import CanDevice
 from can_helper import print_motor_message
 from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ZERO, CMD_SET_ENABLE, CMD_REMAP, CMD_MOTOR_STATUS, \
-    CMD_RELATIVE_TURN
+    CMD_RELATIVE_TURN, CMD_GET_CURRENT_SPEED
 
 
 def make_relative_turn(speed: int, acc: int, degrees: float):
@@ -46,9 +46,10 @@ class BaseMotor(CanDevice):
         self.position = None
         self.status = MotorStatus.UNKNOWN
         self.pending_degrees = None
+        self.current_speed = None
 
     def __str__(self):
-        return f"Motor {self.can_id} (active={self.is_active}) with position {self.position} and status {self.status}"
+        return f"Motor {self.can_id} (active={self.is_active}) with position {self.position}, status {self.status} speed {self.current_speed}"
 
     def set_active(self, active: bool):
         self.is_active = active
@@ -96,10 +97,18 @@ class BaseMotor(CanDevice):
             elif status == 0x00:
                 # Motor failed moving
                 self.status = MotorStatus.ERROR
+        elif command == CMD_GET_CURRENT_SPEED:
+            speed_bytes = message.data[1:3]
+            self.current_speed = int.from_bytes(speed_bytes, byteorder='big', signed=True)
 
     def read_encoder(self):
         msg_read_encoder = self.make_message([CMD_READ_ENCODER])
         self.send_message(msg_read_encoder)
+
+    def get_current_speed(self):
+        self.current_speed = None
+        msg_get_current_speed = self.make_message([CMD_GET_CURRENT_SPEED])
+        self.send_message(msg_get_current_speed)
 
     def motor_status(self):
         msg_motor_status = self.make_message([CMD_MOTOR_STATUS])
