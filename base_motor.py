@@ -58,7 +58,7 @@ class BaseMotor(CanDevice):
         return self.status == MotorStatus.OK
 
     def on_can_message(self, message: can.Message):
-        print(f"Motor {self.can_id} received message: {message}")
+        print(f"\tMotor {self.can_id} received message: {message}")
         command = message.data[0]
 
         print_motor_message(message)

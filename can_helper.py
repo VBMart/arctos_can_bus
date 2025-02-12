@@ -9,7 +9,7 @@ def can_send_message(bus: can.interface.Bus, message: can.Message) -> None:
     bus.send(message)
     data_bytes = ", ".join([f"0x{byte:02X}" for byte in message.data])
     print(
-        f"Message sent: arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
+        f"Message sent (can_send_message): arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
     )
 
 
@@ -20,7 +20,7 @@ def can_send_message_and_wait_response(bus: can.interface.Bus, message: can.Mess
     bus.send(message)
     data_bytes = ", ".join([f"0x{byte:02X}" for byte in message.data])
     print(
-        f"Message sent: arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
+        f"Message sent (can_send_message_and_wait_response): arbitration_id=0x{message.arbitration_id:X}, data=[{data_bytes}], is_extended_id=False"
     )
 
     if timeout == 0:

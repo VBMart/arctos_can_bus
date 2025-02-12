@@ -3,7 +3,7 @@ import can
 from time import sleep, time
 
 from arctos import Arctos
-from motors import XMotor, YMotor, ZMotor
+from motors import XMotor, YMotor, ZMotor, AMotor, BMotor, CMotor
 
 
 def run_fn(fn):
@@ -30,7 +30,6 @@ def read_encoders(bus: can.interface.Bus):
 def go_home(bus: can.interface.Bus):
     print("Going home")
     arctos = Arctos(bus)
-    arctos.a_motor().set_active(False)
     arctos.b_motor().set_active(False)
     arctos.c_motor().set_active(False)
     arctos.go_home()
@@ -82,13 +81,33 @@ def test_x_run(bus: can.interface.Bus):
     x_motor.make_turn(90, speed=500, acc=100, timeout=20)
     x_motor.make_turn(-90, speed=500, acc=100, timeout=20)
 
+def debug_motor(bus: can.interface.Bus):
+    arctos = Arctos(bus)
+
+    # arctos.a_motor().go_home()
+    # arctos.go_home()
+    a_motor = arctos.a_motor()
+    a_motor.go_home()
+    sleep(30)
+    # x_motor = arctos.x_motor()
+    # x_motor.go_home()
+    # a_motor.set_zero()
+    # a_motor.make_turn(-90, speed=500, acc=100, timeout=20)
+    # x_motor.set_zero()
+    # x_motor.make_turn(45, speed=500, acc=100, timeout=1)
+    # a_motor.make_turn(90, speed=500, acc=100, timeout=20)
+    # a_motor.make_turn(-180, speed=500, acc=100, timeout=20)
+    # a_motor.make_turn(90, speed=500, acc=100, timeout=20)
+    # x_motor.make_turn(-45, speed=500, acc=100, timeout=1)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Control motors via CAN bus")
     parser.add_argument("command", choices=["read_encoders", "go_home", "test_x_run", "say_hello"], help="Command to execute")
     args = parser.parse_args()
 
     command = args.command
-    # command = 'go_home'
+    command = 'debug_motor'
+    command = 'go_home'
 
     if command == "read_encoders":
         run_threaded_fn(read_encoders)
@@ -98,3 +117,5 @@ if __name__ == "__main__":
         run_threaded_fn(go_home)
     elif command == "say_hello":
         run_threaded_fn(say_hello)
+    elif command == "debug_motor":
+        run_threaded_fn(debug_motor)

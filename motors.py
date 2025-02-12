@@ -38,7 +38,8 @@ class AMotor(BaseMotor):
         super().__init__(
             bus,
             A_MOTOR_ID,
-            A_RATIO
+            A_RATIO,
+            zero_point=-80,
         )
 
 class BMotor(BaseMotor):

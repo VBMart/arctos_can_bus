@@ -47,12 +47,17 @@ class Arctos:
         while self._listener_active:
             try:
                 message = self._bus.recv(timeout=0.1)
-                if message:
-                    self.on_new_can_message(message)
-                sleep(0.5)
+                try:
+                    if message:
+                        self.on_new_can_message(message)
+                except Exception as e:
+                    print(f"Error (on_new_can_message): {e}")
+                sleep(0.3)
             except (OSError, serial.serialutil.SerialException) as e:
+                print(f"Error: {e}")
                 # Likely the bus/serial port is closed.
                 break
+        print("Listener stopped")
 
     def stop_can_listener(self):
         self._listener_active = False
