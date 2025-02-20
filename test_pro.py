@@ -2,9 +2,24 @@ import time
 
 import can
 import pygame
+from pygame.joystick import JoystickType
 
 from arctos import Arctos
+from base_motor import MotorStatus
 from swith_pro_controller import Button, Axis, DPad
+
+
+button_motor_map = {
+    Button.ZL: {'motor': 'x', 'direction':  1},
+    Button.ZR: {'motor': 'x', 'direction': -1},
+    Button.L:  {'motor': 'y', 'direction':  1},
+    Button.R:  {'motor': 'y', 'direction': -1},
+    Button.B:  {'motor': 'z', 'direction':  1},
+    Button.X:  {'motor': 'z', 'direction': -1},
+    Button.A:  {'motor': 'a', 'direction':  1},
+    Button.Y:  {'motor': 'a', 'direction': -1},
+}
+
 
 def test_controller():
     # Initialize Pygame
@@ -54,6 +69,90 @@ def test_controller():
     pygame.quit()
 
 
+def play_with_turn_mode(joystick: JoystickType, arctos: Arctos):
+    pressed_buttons = []
+
+    # Start reading input
+    running = True
+    while running:
+        pygame.event.pump()  # Process system events
+
+        # Read button presses
+        for button in Button:
+            if joystick.get_button(button.value):
+                if button not in pressed_buttons:
+                    pressed_buttons.append(button)
+                    print(f"Button Pressed: {button.name}")
+                    if button == Button.HOME:
+                        arctos.go_home()
+                    elif button == Button.SCREENSHOT:
+                        for motor in arctos.get_active_motors():
+                            motor.set_zero()
+                if button in button_motor_map:
+                    motor_data = button_motor_map[button]
+                    motor = arctos.get_motor_by_axis(motor_data['motor'])
+                    angle = 1
+                    motor.make_turn(motor_data['direction'] * angle, speed=1000, acc=100)
+            else:
+                if button in pressed_buttons:
+                    pressed_buttons.remove(button)
+
+        # Quit on ESC key
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        time.sleep(0.1)
+
+def play_with_speed_mode(joystick: JoystickType, arctos: Arctos):
+    pressed_buttons = []
+
+    # Start reading input
+    running = True
+    while running:
+        pygame.event.pump()  # Process system events
+        new_pressed_buttons = []
+        unpresed_buttons = []
+
+        # Read button presses
+        for button in Button:
+            if joystick.get_button(button.value):
+                if button not in pressed_buttons:
+                    new_pressed_buttons.append(button)
+                    pressed_buttons.append(button)
+            else:
+                if button in pressed_buttons:
+                    unpresed_buttons.append(button)
+                    pressed_buttons.remove(button)
+
+        for button in new_pressed_buttons:
+            print(f"Button Pressed: {button.name}")
+            if button == Button.HOME:
+                arctos.go_home()
+            elif button == Button.SCREENSHOT:
+                for motor in arctos.get_active_motors():
+                    motor.set_zero()
+            if button in button_motor_map:
+                motor_data = button_motor_map[button]
+                motor = arctos.get_motor_by_axis(motor_data['motor'])
+                if motor.status == MotorStatus.OK:
+                    motor.run_in_speed_mode(motor_data['direction'], 300, 100)
+
+        for button in unpresed_buttons:
+            print(f"Button Released: {button.name}")
+            if button in button_motor_map:
+                motor_data = button_motor_map[button]
+                motor = arctos.get_motor_by_axis(motor_data['motor'])
+                if motor.status == MotorStatus.MOVING:
+                    motor.stop_in_speed_mode(100)
+
+        # Quit on ESC key
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        time.sleep(0.1)
+
 def play_with_arm():
     bus = can.ThreadSafeBus(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
     arctos = Arctos(bus)
@@ -74,50 +173,13 @@ def play_with_arm():
 
     print(f"Connected to: {joystick.get_name()}")
 
-    pressed_buttons = []
+    is_make_turn_mode = False
 
-    # Start reading input
-    running = True
-    while running:
-        pygame.event.pump()  # Process system events
+    if is_make_turn_mode:
+        play_with_turn_mode(joystick, arctos)
+    else:
+        play_with_speed_mode(joystick, arctos)
 
-        # Read button presses
-        for button in Button:
-            if joystick.get_button(button.value):
-                if button not in pressed_buttons:
-                    pressed_buttons.append(button)
-                    print(f"Button Pressed: {button.name}")
-                    if button == Button.HOME:
-                        arctos.go_home()
-                    elif button == Button.SCREENSHOT:
-                        for motor in arctos.get_active_motors():
-                            motor.set_zero()
-                if button == Button.ZL:
-                    arctos.x_motor().make_turn(1)
-                elif button == Button.ZR:
-                    arctos.x_motor().make_turn(-1)
-                elif button == Button.L:
-                    arctos.y_motor().make_turn(1)
-                elif button == Button.R:
-                    arctos.y_motor().make_turn(-1)
-                elif button == Button.X:
-                    arctos.z_motor().make_turn(1)
-                elif button == Button.B:
-                    arctos.z_motor().make_turn(-1)
-                elif button == Button.A:
-                    arctos.a_motor().make_turn(1)
-                elif button == Button.Y:
-                    arctos.a_motor().make_turn(-1)
-            else:
-                if button in pressed_buttons:
-                    pressed_buttons.remove(button)
-
-        # Quit on ESC key
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        time.sleep(0.1)
 
     pygame.quit()
     bus.shutdown()
