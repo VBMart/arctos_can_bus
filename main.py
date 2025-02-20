@@ -83,12 +83,23 @@ def test_x_run(bus: can.interface.Bus):
 
 def debug_motor(bus: can.interface.Bus):
     arctos = Arctos(bus)
+    a_motor = arctos.a_motor()
+    a_motor.set_zero()
+    sleep(1)
+    a_motor.run_in_speed_mode(1, 1000, 100)
+    sleep(5)
+    a_motor.stop_in_speed_mode(100)
+    sleep(5)
+    a_motor.run_in_speed_mode(-1, 1000, 100)
+    sleep(5)
+    a_motor.stop_in_speed_mode(100)
+    sleep(5)
+
 
     # arctos.a_motor().go_home()
     # arctos.go_home()
-    a_motor = arctos.a_motor()
-    a_motor.go_home()
-    sleep(30)
+    # a_motor.go_home()
+    # sleep(30)
     # x_motor = arctos.x_motor()
     # x_motor.go_home()
     # a_motor.set_zero()
@@ -107,7 +118,7 @@ if __name__ == "__main__":
 
     command = args.command
     command = 'debug_motor'
-    command = 'go_home'
+    # command = 'go_home'
 
     if command == "read_encoders":
         run_threaded_fn(read_encoders)

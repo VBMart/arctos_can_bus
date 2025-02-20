@@ -5,13 +5,23 @@ import can
 from can_device import CanDevice
 from can_helper import print_motor_message
 from constants import CMD_READ_ENCODER, CMD_GO_HOME, CMD_SET_ZERO, CMD_SET_ENABLE, CMD_REMAP, CMD_MOTOR_STATUS, \
-    CMD_RELATIVE_TURN, CMD_GET_CURRENT_SPEED
+    CMD_RELATIVE_TURN, CMD_GET_CURRENT_SPEED, CMD_RUN_MOTOR
 
+
+def limit_speed(speed: int):
+    # speed in range 0-3000
+    return speed if speed < 3000 else 3000
+
+def limit_acc(acc: int):
+    # acc in range 0-255
+    return acc if acc < 255 else 255
 
 def make_relative_turn(speed: int, acc: int, degrees: float):
     # speed in range 0-3000
     # acc in range 0-255
     # degrees in range -8388607，+8388607
+    speed = limit_speed(speed)
+    acc = limit_acc(acc)
     command = CMD_RELATIVE_TURN
     degrees_value = round(degrees * 0x3FFF) // 360
     data = [command]
@@ -100,6 +110,29 @@ class BaseMotor(CanDevice):
         elif command == CMD_GET_CURRENT_SPEED:
             speed_bytes = message.data[1:3]
             self.current_speed = int.from_bytes(speed_bytes, byteorder='big', signed=True)
+        elif command == CMD_RUN_MOTOR:
+            status = message.data[1]
+            if self.status == MotorStatus.OK:
+                if status == 0x01:
+                    self.status = MotorStatus.MOVING
+                elif status == 0x00:
+                    self.status = MotorStatus.ERROR
+            elif self.status == MotorStatus.MOVING:
+                if status == 0x02:
+                    self.status = MotorStatus.OK
+                elif status == 0x00:
+                    self.status = MotorStatus.ERROR
+                elif status == 0x01:
+                    # start to stop the motor
+                    pass
+        elif command == CMD_SET_ZERO:
+            status = message.data[1]
+            if status == 0x01:
+                self.position = 0
+                self.status = MotorStatus.OK
+            elif status == 0x00:
+                self.position = None
+                self.status = MotorStatus.ERROR
 
     def read_encoder(self):
         msg_read_encoder = self.make_message([CMD_READ_ENCODER])
@@ -150,3 +183,24 @@ class BaseMotor(CanDevice):
         turn_msg = self.make_message(turn)
         self.send_message(turn_msg, timeout=timeout)
         self.pending_degrees = degrees
+
+    def run_in_speed_mode(self, dir: int, speed: int, acc: int):
+        print(f'Run motor {self.can_id} in speed mode. Status: {self.status}')
+        if self.status != MotorStatus.OK:
+            return
+        speed = limit_speed(speed)
+        acc = limit_acc(acc)
+        direction = 0
+        if dir >= 0:
+            direction = 1
+        byte3 = speed & 0xFF  # Lower 8 bits of speed
+        byte2 = ((direction & 0x01) << 7) | ((speed >> 8) & 0x0F)  # Highest bit for dir, lower 4 bits for speed
+        msg_run_motor = self.make_message([CMD_RUN_MOTOR, byte2, byte3, acc])
+        self.send_message(msg_run_motor)
+
+    def stop_in_speed_mode(self, acc: int):
+        if self.status != MotorStatus.MOVING:
+            return
+        acc = limit_acc(acc)
+        msg_run_motor = self.make_message([CMD_RUN_MOTOR, 0, 0, acc])
+        self.send_message(msg_run_motor)
