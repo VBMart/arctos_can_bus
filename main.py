@@ -81,6 +81,36 @@ def test_x_run(bus: can.interface.Bus):
     x_motor.make_turn(90, speed=500, acc=100, timeout=20)
     x_motor.make_turn(-90, speed=500, acc=100, timeout=20)
 
+def debug_bc_motors(bus: can.interface.Bus):
+    arctos = Arctos(bus)
+    arctos.x_motor().set_active(False)
+    arctos.y_motor().set_active(False)
+    arctos.z_motor().set_active(False)
+
+    debug_speed = 100
+
+    arctos.a_motor().set_zero()
+    arctos.b_motor().set_zero()
+    arctos.c_motor().set_zero()
+
+    arctos.b_motor().make_turn(30, speed=debug_speed)
+    arctos.c_motor().make_turn(-30, speed=debug_speed)
+
+    sleep(5)
+
+    arctos.b_motor().make_turn(30, speed=debug_speed)
+    arctos.c_motor().make_turn(30, speed=debug_speed)
+
+    sleep(5)
+
+    arctos.b_motor().make_turn(-30, speed=debug_speed)
+    arctos.c_motor().make_turn(30, speed=debug_speed)
+
+    sleep(5)
+
+    arctos.b_motor().make_turn(-30, speed=debug_speed)
+    arctos.c_motor().make_turn(-30, speed=debug_speed)
+
 def debug_motor(bus: can.interface.Bus):
     arctos = Arctos(bus)
     a_motor = arctos.a_motor()
@@ -117,7 +147,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     command = args.command
-    command = 'debug_motor'
+    # command = 'debug_bc_motors'
     # command = 'go_home'
 
     if command == "read_encoders":
@@ -130,3 +160,5 @@ if __name__ == "__main__":
         run_threaded_fn(say_hello)
     elif command == "debug_motor":
         run_threaded_fn(debug_motor)
+    elif command == "debug_bc_motors":
+        run_threaded_fn(debug_bc_motors)
