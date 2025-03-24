@@ -116,11 +116,13 @@ class BaseMotor(CanDevice):
                 if status == 0x01:
                     self.status = MotorStatus.MOVING
                 elif status == 0x00:
+                    print(f'Motor {self.can_id} FAILED to start')
                     self.status = MotorStatus.ERROR
             elif self.status == MotorStatus.MOVING:
                 if status == 0x02:
                     self.status = MotorStatus.OK
                 elif status == 0x00:
+                    print(f'Motor {self.can_id} FAILED to stop')
                     self.status = MotorStatus.ERROR
                 elif status == 0x01:
                     # start to stop the motor
