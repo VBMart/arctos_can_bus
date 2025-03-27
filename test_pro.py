@@ -1,3 +1,4 @@
+import random
 import time
 
 import can
@@ -6,6 +7,7 @@ from pygame.joystick import JoystickType
 
 from arctos import Arctos
 from base_motor import MotorStatus
+from led_device import Color
 from swith_pro_controller import Button, Axis, DPad
 
 
@@ -152,6 +154,8 @@ def play_with_turn_mode(arctos: Arctos):
 def play_with_speed_mode(arctos: Arctos):
     gp = MyJoystick()
 
+    arctos.gripper.set_gripper_position(127)
+
     # Start reading input
     running = True
     while running:
@@ -164,6 +168,7 @@ def play_with_speed_mode(arctos: Arctos):
             elif button == Button.SCREENSHOT:
                 for motor in arctos.get_active_motors():
                     motor.set_zero()
+                pass
             if button in button_motor_map:
                 motor_data = button_motor_map[button]
                 motor = arctos.get_motor_by_axis(motor_data['motor'])
@@ -171,6 +176,10 @@ def play_with_speed_mode(arctos: Arctos):
                     motor.run_in_speed_mode(motor_data['direction'], 300, 100)
                 else:
                     print(f"Motor {motor.can_id} is not ready. Status: {motor.status}")
+            if button == Button.PLUS:
+                arctos.gripper.set_gripper_position(arctos.gripper.gripper_position + 85)
+            if button == Button.MINUS:
+                arctos.gripper.set_gripper_position(arctos.gripper.gripper_position - 85)
 
             if button in button_axis_map:
                 axis_data = button_axis_map[button]

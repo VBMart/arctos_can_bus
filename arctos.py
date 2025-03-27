@@ -3,8 +3,19 @@ from time import sleep
 import can
 from can.interfaces import serial
 
+from base_motor import MotorStatus
+from gripper_device import GripperDevice
+from led_device import LedDevice, Color
 from motors import XMotor, YMotor, ZMotor, AMotor, BMotor, CMotor
 
+
+motor_statuses_to_color_mapping = {
+    MotorStatus.UNKNOWN: Color.VIOLET,
+    MotorStatus.OK: Color.GREEN,
+    MotorStatus.MOVING: Color.YELLOW,
+    MotorStatus.ERROR: Color.RED,
+    MotorStatus.HOMING: Color.CYAN,
+}
 
 
 class Arctos:
@@ -29,10 +40,14 @@ class Arctos:
         for motor in self._motors.values():
             motor.can_wait_for_response = False
 
+        self.led = LedDevice(bus)
+        self.gripper = GripperDevice(bus)
+
         # Start the CAN listener
         self._listener_active = False
         self._listener_thread = None
         self.start_can_listener()
+        self.motor_statuses_to_led()
 
     def __str__(self):
         return f"Arctos \n\t Motors: \n\t\t {'\n\t\t '.join([str(motor) for motor in self._motors.values()])}"
@@ -72,6 +87,17 @@ class Arctos:
         """
         self.stop_can_listener()
 
+    def motor_statuses_to_led(self):
+        is_led_changed = False
+        for motor in self.get_active_motors():
+            color = motor_statuses_to_color_mapping.get(motor.status, Color.BLACK)
+            changed = self.led.set_motor_color(motor.can_id, color)
+            is_led_changed = is_led_changed or changed
+
+        if is_led_changed:
+            self.led.show()
+
+
     def on_new_can_message(self, message: can.Message):
         """
         Handle a new CAN message.
@@ -90,7 +116,7 @@ class Arctos:
         motor = self.get_motor_by_id(sender_id)
         if motor:
             motor.on_can_message(message)
-
+            self.motor_statuses_to_led()
 
     def get_motor_by_axis(self, axis_name: str):
         """
@@ -127,7 +153,8 @@ class Arctos:
         Send the go home command to all motors.
         """
         for motor in self.get_active_motors():
-            motor.go_home()
+            if motor not in [self.b_motor(), self.c_motor()]:
+                motor.go_home()
 
     def x_motor(self):
         """Get the X motor instance."""
