@@ -12,14 +12,14 @@ from swith_pro_controller import Button, Axis, DPad
 
 
 button_motor_map = {
-    Button.ZL: {'motor': 'x', 'direction':  1},
-    Button.ZR: {'motor': 'x', 'direction': -1},
-    Button.L:  {'motor': 'y', 'direction':  1},
-    Button.R:  {'motor': 'y', 'direction': -1},
-    Button.B:  {'motor': 'z', 'direction':  1},
-    Button.X:  {'motor': 'z', 'direction': -1},
-    Button.A:  {'motor': 'a', 'direction':  1},
-    Button.Y:  {'motor': 'a', 'direction': -1},
+    Button.ZL: {'motor': 'x', 'direction':  1, 'speed': 100, 'acc': 50},
+    Button.ZR: {'motor': 'x', 'direction': -1, 'speed': 100, 'acc': 50},
+    Button.L:  {'motor': 'y', 'direction':  1, 'speed': 300, 'acc': 100},
+    Button.R:  {'motor': 'y', 'direction': -1, 'speed': 300, 'acc': 100},
+    Button.B:  {'motor': 'z', 'direction':  1, 'speed': 300, 'acc': 100},
+    Button.X:  {'motor': 'z', 'direction': -1, 'speed': 300, 'acc': 100},
+    Button.A:  {'motor': 'a', 'direction':  1, 'speed': 300, 'acc': 100},
+    Button.Y:  {'motor': 'a', 'direction': -1, 'speed': 300, 'acc': 100},
 }
 
 button_axis_map = {
@@ -173,7 +173,7 @@ def play_with_speed_mode(arctos: Arctos):
                 motor_data = button_motor_map[button]
                 motor = arctos.get_motor_by_axis(motor_data['motor'])
                 if motor.status == MotorStatus.OK:
-                    motor.run_in_speed_mode(motor_data['direction'], 300, 100)
+                    motor.run_in_speed_mode(motor_data['direction'], motor_data['speed'], motor_data['acc'])
                 else:
                     print(f"Motor {motor.can_id} is not ready. Status: {motor.status}")
             if button == Button.PLUS:
